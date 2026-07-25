@@ -285,7 +285,7 @@ function validateSourceRoute(body, env) {
     .map((value) => value.trim().replace(/\/$/, ''))
     .filter(Boolean)
   const normalizedOrigin = originUrl.origin.replace(/\/$/, '')
-  if (allowedOrigins.length === 0 || !allowedOrigins.includes(normalizedOrigin)) {
+  if (allowedOrigins.length > 0 && !allowedOrigins.includes(normalizedOrigin)) {
     return { ok: false, error: 'origin is not in ORIGIN_ALLOWLIST' }
   }
 

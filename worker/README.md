@@ -60,7 +60,7 @@ npx wrangler deploy
    - `CLOUDFLARE_API_TOKEN`
 
    **Variables（明文配置）：**
-   - `ORIGIN_ALLOWLIST`：允许配置的源站 Origin，逗号分隔（必填）
+   - `ORIGIN_ALLOWLIST`：允许配置的源站 Origin，逗号分隔（可选，配置后启用严格白名单）
    - `D1_DATABASE_NAME`：D1 数据库名，默认 `resource-cache-db`，CI 会自动解析 ID
    - `R2_BUCKET_NAME`：R2 bucket 名，默认 `resource-cache`
    - `ROUTE_PATTERN`：Worker 路由（可选），自定义域名填 `cdn.yourdomain.com`，留空则只使用 `*.workers.dev`

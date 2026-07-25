@@ -34,10 +34,9 @@ jobs:
         env:
           D1_DATABASE_NAME: ${{ vars.D1_DATABASE_NAME || 'resource-cache-db' }}
           R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME || 'resource-cache' }}
-          ORIGIN_ALLOWLIST: ${{ vars.ORIGIN_ALLOWLIST }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          for variable in D1_DATABASE_NAME R2_BUCKET_NAME ORIGIN_ALLOWLIST CLOUDFLARE_API_TOKEN; do
+          for variable in D1_DATABASE_NAME R2_BUCKET_NAME CLOUDFLARE_API_TOKEN; do
             if [ -z "${!variable}" ]; then
               echo "::error::Missing GitHub Actions variable or secret: $variable"
               exit 1
