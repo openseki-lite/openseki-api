@@ -4,9 +4,11 @@
 
 ## 技术栈
 
-- Nuxt 3
-- Vue 3 Composition API
-- 原生 CSS（Ark UI tokens）
+- Next.js 15 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- Ark UI 视觉样式
 
 ## 页面
 
@@ -19,7 +21,7 @@
 ```bash
 cd web/app
 cp .env.example .env
-# 编辑 .env 填入 CACHE_API_BASE 和 TOKEN
+# 编辑 .env 填入 NEXT_PUBLIC_CACHE_API_BASE 和 TOKEN
 npm install
 npm run dev
 ```
@@ -36,8 +38,8 @@ npx vercel --prod
 
 | 变量 | 说明 |
 |---|---|
-| `NUXT_PUBLIC_CACHE_API_BASE` | 缓存服务地址，如 `https://cdn.yourdomain.com` |
-| `NUXT_PUBLIC_CACHE_API_TOKEN` | Workers API Token |
+| `NEXT_PUBLIC_CACHE_API_BASE` | 缓存服务地址，如 `https://cdn.yourdomain.com` |
+| `NEXT_PUBLIC_CACHE_API_TOKEN` | Workers API Token |
 
 ## Ark UI 契约
 
@@ -47,6 +49,5 @@ npx vercel --prod
 
 ## CSS 策略
 
-- `assets/css/ark-ui.css` — Ark UI 原生视觉样式（字体、颜色、装饰、组件）
-- `assets/css/tailwind.css` — Tailwind 工具类，用于快速布局
-- `tailwind.config.js` 中 `preflight: false`，避免覆盖 ark-ui 基础样式
+- `app/ark-ui.css` — Ark UI 原生视觉样式（字体、颜色、装饰、组件）
+- Tailwind CSS v4 — 用于快速布局

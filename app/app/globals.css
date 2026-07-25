@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "./ark-ui.css";
+
+:root {
+  --background: #f2f2f0;
+  --foreground: #191919;
+}
+
+@theme inline {
+  --color-ink: #191919;
+  --color-paper: #f2f2f0;
+  --color-signal: #fffa00;
+  --color-state: #00ffa2;
+  --color-muted: #888888;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
