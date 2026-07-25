@@ -30,6 +30,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate wrangler.toml
+        run: |
+          cat > wrangler.toml <<EOF
+          name = "resource-proxy"
+          main = "src/index.js"
+          compatibility_date = "2026-07-24"
+
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "${{ vars.D1_DATABASE_NAME }}"
+          database_id = "${{ vars.D1_DATABASE_ID }}"
+
+          [[r2_buckets]]
+          binding = "CACHE_BUCKET"
+          bucket_name = "${{ vars.R2_BUCKET_NAME }}"
+
+          [[routes]]
+          pattern = "${{ vars.ROUTE_PATTERN }}"
+          custom_domain = true
+
+          [vars]
+          DEFAULT_TTL = "${{ vars.DEFAULT_TTL }}"
+          MAX_CACHE_SIZE = "${{ vars.MAX_CACHE_SIZE }}"
+          EOF
+
       - name: Deploy to Cloudflare Workers
         if: github.ref == 'refs/heads/main'
         run: npx wrangler deploy

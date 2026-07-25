@@ -1,0 +1,23 @@
+# Copy this file to wrangler.toml for local development.
+# In CI, this file is generated automatically from GitHub Variables.
+
+name = "resource-proxy"
+main = "src/index.js"
+compatibility_date = "2026-07-24"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "resource-cache-db"       # GitHub Variable: D1_DATABASE_NAME
+database_id = "your-database-id"          # GitHub Variable: D1_DATABASE_ID
+
+[[r2_buckets]]
+binding = "CACHE_BUCKET"
+bucket_name = "resource-cache"            # GitHub Variable: R2_BUCKET_NAME
+
+[[routes]]
+pattern = "cdn.yourdomain.com/*"          # GitHub Variable: ROUTE_PATTERN
+custom_domain = true
+
+[vars]
+DEFAULT_TTL = "604800"                    # GitHub Variable: DEFAULT_TTL
+MAX_CACHE_SIZE = "104857600"              # GitHub Variable: MAX_CACHE_SIZE

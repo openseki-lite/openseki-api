@@ -52,8 +52,18 @@ npx wrangler deploy
    - 权限：`Cloudflare Workers:Edit`、`Account:Read`
    - 资源：你的账户
 
-2. 在 GitHub 仓库 Settings → Secrets → Actions 添加：
+2. 在 GitHub 仓库 Settings → Secrets and variables → Actions 添加：
+
+   **Secret（加密）：**
    - `CLOUDFLARE_API_TOKEN`
+
+   **Variables（明文配置）：**
+   - `D1_DATABASE_NAME`：D1 数据库名，如 `resource-cache-db`
+   - `D1_DATABASE_ID`：D1 database ID
+   - `R2_BUCKET_NAME`：R2 bucket 名，如 `resource-cache`
+   - `ROUTE_PATTERN`：Worker 路由，如 `cdn.yourdomain.com/*`
+   - `DEFAULT_TTL`：默认缓存秒数，如 `604800`
+   - `MAX_CACHE_SIZE`：最大缓存字节数，如 `104857600`
 
 3. push 到 `main` 分支自动触发部署
 

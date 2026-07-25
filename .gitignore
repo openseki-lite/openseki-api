@@ -19,6 +19,7 @@
 # Wrangler / Cloudflare
 **/.wrangler/
 **/wrangler.toml.local
+worker/wrangler.toml
 
 # Logs
 *.log
