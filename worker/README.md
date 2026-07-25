@@ -44,7 +44,7 @@ npx wrangler deploy
 
 ### GitHub Actions 自动部署
 
-已在项目根目录创建 `.github/workflows/deploy-worker.yml`。
+已在 `web/.github/workflows/deploy-worker.yml` 配置自动部署工作流。
 
 需要配置：
 
