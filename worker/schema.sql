@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS source_routes (
 CREATE INDEX IF NOT EXISTS idx_source_routes_active ON source_routes(active);
 CREATE INDEX IF NOT EXISTS idx_source_routes_team ON source_routes(team_id);
 
+CREATE TABLE IF NOT EXISTS cache_meta (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  version INTEGER NOT NULL DEFAULT 1
+);
+
+INSERT OR IGNORE INTO cache_meta (id, version) VALUES (1, 1);
+
 -- 插入示例数据
 INSERT OR IGNORE INTO source_routes (prefix, origin, ttl, active)
 VALUES

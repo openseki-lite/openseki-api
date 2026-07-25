@@ -56,7 +56,7 @@ GET https://cdn.yourdomain.com/{path}
 ### 获取源站配置列表
 
 ```http
-GET /admin/sources
+GET /api/admin/sources
 Authorization: Bearer {token}
 ```
 
@@ -80,7 +80,7 @@ Authorization: Bearer {token}
 ### 新增源站配置
 
 ```http
-POST /admin/sources
+POST /api/admin/sources
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -90,30 +90,10 @@ Content-Type: application/json
 }
 ```
 
-### 更新源站配置
-
-```http
-PUT /admin/sources/{id}
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-  "prefix": "/images/",
-  "origin": "https://new-origin.com"
-}
-```
-
-### 删除源站配置
-
-```http
-DELETE /admin/sources/{id}
-Authorization: Bearer {token}
-```
-
 ### 刷新缓存
 
 ```http
-POST /admin/purge
+POST /api/admin/purge
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -133,7 +113,7 @@ Content-Type: application/json
 ### 获取缓存统计
 
 ```http
-GET /admin/stats?days=7
+GET /api/admin/stats?days=7
 Authorization: Bearer {token}
 ```
 
@@ -157,15 +137,12 @@ Authorization: Bearer {token}
 ### 缓存预热
 
 ```http
-POST /admin/warmup
+POST /api/admin/warm
 Authorization: Bearer {token}
 Content-Type: application/json
 
 {
-  "paths": [
-    "/images/abc.jpg",
-    "/videos/def.mp4"
-  ]
+  "prefix": "/images/*"
 }
 ```
 
@@ -210,7 +187,7 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event)
 
   const config = useRuntimeConfig()
-  const response = await fetch(`${config.cacheApiBase}/admin/sources`, {
+  const response = await fetch(`${config.cacheApiBase}/api/admin/sources`, {
     headers: { Authorization: `Bearer ${config.cacheApiToken}` }
   })
 

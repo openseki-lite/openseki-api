@@ -1,9 +1,14 @@
+import { revalidatePath } from "next/cache";
 import { AppShell } from "@/components/AppShell";
 import { ArkSectionTitle, ArkPanel, ArkButton } from "@/components/ArkUI";
 import { listSources, upsertSource } from "@/lib/api";
+import { requireAdmin } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export default async function SourcesPage() {
-  const sources = await listSources().catch(() => []);
+  await requireAdmin();
+  const sources = await listSources();
 
   return (
     <AppShell>
@@ -15,6 +20,7 @@ export default async function SourcesPage() {
         <form
           action={async (formData) => {
             'use server';
+            await requireAdmin();
             await upsertSource({
               prefix: String(formData.get('prefix')),
               origin: String(formData.get('origin')),
@@ -22,6 +28,8 @@ export default async function SourcesPage() {
               active: 1,
               team_id: 'default',
             });
+            revalidatePath('/sources');
+            revalidatePath('/');
           }}
           className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end"
         >

@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS cache_meta (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  version INTEGER NOT NULL DEFAULT 1
+);
+
+INSERT OR IGNORE INTO cache_meta (id, version) VALUES (1, 1);

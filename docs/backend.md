@@ -188,10 +188,10 @@ Worker 除了代理请求，还暴露管理接口：
 
 | 接口 | 方法 | 作用 |
 |---|---|---|
-| `/admin/sources` | GET | 获取源站配置 |
-| `/admin/sources` | POST | 新增/更新源站配置 |
-| `/admin/purge` | POST | 刷新指定路径缓存 |
-| `/admin/stats` | GET | 获取缓存统计 |
+| `/api/admin/sources` | GET | 获取源站配置 |
+| `/api/admin/sources` | POST | 新增/更新源站配置 |
+| `/api/admin/purge` | POST | 刷新指定路径缓存 |
+| `/api/admin/stats` | GET | 获取缓存统计 |
 
 这些接口需要 Bearer Token 认证。
 

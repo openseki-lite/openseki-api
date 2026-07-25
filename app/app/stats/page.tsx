@@ -1,8 +1,12 @@
 import { AppShell } from "@/components/AppShell";
 import { ArkSectionTitle, ArkPanel } from "@/components/ArkUI";
 import { getStats } from "@/lib/api";
+import { requireAdmin } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export default async function StatsPage() {
+  await requireAdmin();
   const stats = await getStats();
 
   return (
@@ -13,7 +17,7 @@ export default async function StatsPage() {
 
       <div className="grid grid-cols-1 gap-4">
         {stats.map((day) => {
-          const hitRatio = Math.round((day.hits / day.requests) * 100);
+          const hitRatio = day.requests > 0 ? Math.round((day.hits / day.requests) * 100) : 0;
           return (
             <ArkPanel key={day.date} code={`DATE / ${day.date.toUpperCase()}`} title={day.requests.toLocaleString()}>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

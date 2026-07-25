@@ -1,10 +1,15 @@
+import { revalidatePath } from "next/cache";
 import { AppShell } from "@/components/AppShell";
 import { ArkSectionTitle, ArkPanel, ArkButton } from "@/components/ArkUI";
 import { purgeCache, warmCache, getStats } from "@/lib/api";
+import { requireAdmin } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  await requireAdmin();
   const stats = await getStats();
-  const today = stats[0];
+  const today = stats[0] ?? { requests: 0, hits: 0, misses: 0, bytes_served: 0 };
 
   return (
     <AppShell>
@@ -29,7 +34,11 @@ export default async function HomePage() {
           <p className="mb-4">Remove cached objects from R2 and edge cache.</p>
           <form action={async () => {
             'use server';
+            await requireAdmin();
             await purgeCache('/*');
+            revalidatePath('/');
+            revalidatePath('/sources');
+            revalidatePath('/stats');
           }}>
             <ArkButton primary type="submit">Purge All</ArkButton>
           </form>
@@ -38,7 +47,9 @@ export default async function HomePage() {
           <p className="mb-4">Fetch critical resources back into cache.</p>
           <form action={async () => {
             'use server';
+            await requireAdmin();
             await warmCache('/*');
+            revalidatePath('/');
           }}>
             <ArkButton primary type="submit">Warm Up</ArkButton>
           </form>

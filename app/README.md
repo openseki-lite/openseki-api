@@ -20,8 +20,7 @@
 
 ```bash
 cd web/app
-cp .env.example .env
-# 编辑 .env 填入 NEXT_PUBLIC_CACHE_API_BASE 和 TOKEN
+# 创建 .env.local 并填入服务端私有变量
 npm install
 npm run dev
 ```
@@ -38,8 +37,12 @@ npx vercel --prod
 
 | 变量 | 说明 |
 |---|---|
-| `NEXT_PUBLIC_CACHE_API_BASE` | 缓存服务地址，如 `https://cdn.yourdomain.com` |
-| `NEXT_PUBLIC_CACHE_API_TOKEN` | Workers API Token |
+| `CACHE_API_BASE` | 缓存服务地址，如 `https://cdn.yourdomain.com` |
+| `CACHE_API_TOKEN` | Workers API Token，仅在 Next.js 服务端配置 |
+| `ADMIN_PASSWORD` | 管理后台登录密码，仅在 Next.js 服务端配置 |
+| `ADMIN_SESSION_SECRET` | 用于签名管理会话的随机长字符串 |
+
+不要使用 `NEXT_PUBLIC_` 前缀保存 Worker Token。管理操作通过 Server Action 在服务端转发。
 
 ## Ark UI 契约
 

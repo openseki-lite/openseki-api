@@ -134,8 +134,13 @@ npm install @element-plus/nuxt pinia @pinia/nuxt
 ```bash
 CACHE_API_BASE=https://cdn.yourdomain.com
 CACHE_API_TOKEN=your-secure-random-token
+ADMIN_PASSWORD=your-admin-password
+ADMIN_SESSION_SECRET=generate-a-long-random-secret
 NUXT_SESSION_PASSWORD=your-session-secret
 ```
+
+`CACHE_API_TOKEN` 必须配置为部署平台的服务端私有变量，不能使用 `NEXT_PUBLIC_` 前缀。
+`ADMIN_PASSWORD` 和 `ADMIN_SESSION_SECRET` 也必须只配置在服务端环境变量中。
 
 ### 2.4 编写管理页面
 
@@ -192,7 +197,7 @@ git push -u origin main
 对热点资源执行预热：
 
 ```bash
-curl -X POST https://cdn.yourdomain.com/admin/warmup \
+curl -X POST https://cdn.yourdomain.com/api/admin/warm \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{"paths":["/images/logo.png","/css/app.css"]}'

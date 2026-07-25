@@ -1,3 +1,5 @@
+import 'server-only';
+
 export interface SourceRoute {
   id: number;
   prefix: string;
@@ -18,20 +20,24 @@ export interface CacheStats {
 }
 
 function getBase() {
-  return process.env.NEXT_PUBLIC_CACHE_API_BASE || '';
+  return (process.env.CACHE_API_BASE || '').replace(/\/$/, '');
 }
 
 function getToken() {
-  return process.env.NEXT_PUBLIC_CACHE_API_TOKEN || '';
+  return process.env.CACHE_API_TOKEN || '';
 }
 
 async function fetchAdmin<T>(path: string, options: RequestInit = {}): Promise<T> {
   const base = getBase();
   const token = getToken();
+  if (!base || !token) {
+    throw new Error('CACHE_API_BASE and CACHE_API_TOKEN must be configured on the server');
+  }
   const url = `${base}/api/admin${path}`;
 
   const res = await fetch(url, {
     ...options,
+    cache: 'no-store',
     headers: {
       Authorization: `Bearer ${token}`,
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
@@ -73,9 +79,11 @@ export async function warmCache(prefix?: string) {
 }
 
 export async function getStats(): Promise<CacheStats[]> {
-  // Worker does not expose a stats endpoint yet; return mock data for now.
-  return [
-    { date: 'today', requests: 1240, hits: 980, misses: 260, bytes_served: 1_024_000_000 },
-    { date: 'yesterday', requests: 980, hits: 740, misses: 240, bytes_served: 820_000_000 },
-  ];
+  try {
+    return await fetchAdmin<CacheStats[]>('/stats?days=30');
+  } catch (error) {
+    // Older deployed Workers do not expose stats yet; keep the dashboard usable.
+    if (error instanceof Error && error.message.startsWith('API error 404:')) return [];
+    throw error;
+  }
 }

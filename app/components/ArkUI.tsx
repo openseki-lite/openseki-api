@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 export const arkThemes = ['ark', 'endfield', 'exa', 'popucom', 'corporate'] as const;
 export type ArkTheme = (typeof arkThemes)[number];
@@ -52,8 +52,6 @@ export function ArkShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const profile = arkThemeProfiles[theme] || arkThemeProfiles.endfield;
 
-  useEffect(() => setMenuOpen(false), [activeId]);
-
   return (
     <div className="arkR-shell" data-ark-theme={theme} data-ark-depth={depth}>
       <header className="arkR-topbar">
@@ -84,7 +82,10 @@ export function ArkShell({
             type="button"
             className={item.id === activeId ? 'is-active' : undefined}
             aria-current={item.id === activeId ? 'page' : undefined}
-            onClick={() => onNavigate?.(item.id)}
+            onClick={() => {
+              setMenuOpen(false);
+              onNavigate?.(item.id);
+            }}
           >
             <span>{String(index + 1).padStart(2, '0')}</span>
             {item.label}

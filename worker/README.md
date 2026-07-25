@@ -64,6 +64,8 @@ npx wrangler deploy
    - `ROUTE_PATTERN`：Worker 路由（可选），自定义域名填 `cdn.yourdomain.com`，留空则只使用 `*.workers.dev`
    - `DEFAULT_TTL`：默认缓存秒数，如 `604800`
    - `MAX_CACHE_SIZE`：最大缓存字节数，如 `104857600`
+   - `ORIGIN_ALLOWLIST`：允许配置的完整源站 Origin，逗号分隔
+   - `ADMIN_ORIGINS`：允许管理 API 跨域调用的前端 Origin，逗号分隔
 
    > 首次部署前，需要先在 Cloudflare Dashboard 注册一个免费的 `workers.dev` 子域名，否则部署会失败。
 
@@ -75,6 +77,7 @@ npx wrangler deploy
 npx wrangler d1 create resource-cache-db
 # 把返回的 database_id 填入 wrangler.toml
 npx wrangler d1 execute resource-cache-db --file=./schema.sql
+npx wrangler d1 migrations apply resource-cache-db --remote
 ```
 
 ## 设置 API Token
@@ -90,6 +93,8 @@ npx wrangler secret put API_TOKEN
 | `API_TOKEN` | 管理 API 认证 Token（Secret） |
 | `DEFAULT_TTL` | 默认缓存时间，单位秒 |
 | `MAX_CACHE_SIZE` | 最大缓存文件大小，单位字节 |
+| `ORIGIN_ALLOWLIST` | 允许写入 D1 的源站 Origin 白名单 |
+| `ADMIN_ORIGINS` | 管理 API 的 CORS Origin 白名单 |
 
 ## 管理 API
 

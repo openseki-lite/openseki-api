@@ -92,11 +92,10 @@ export function useCacheApi() {
   }
 
   return {
-    getSources: () => fetchApi('/admin/sources'),
-    createSource: (data: any) => fetchApi('/admin/sources', { method: 'POST', body: JSON.stringify(data) }),
-    deleteSource: (id: number) => fetchApi(`/admin/sources/${id}`, { method: 'DELETE' }),
-    purgeCache: (path: string) => fetchApi('/admin/purge', { method: 'POST', body: JSON.stringify({ path }) }),
-    getStats: (days = 7) => fetchApi(`/admin/stats?days=${days}`)
+    getSources: () => fetchApi('/api/admin/sources'),
+    createSource: (data: any) => fetchApi('/api/admin/sources', { method: 'POST', body: JSON.stringify(data) }),
+    purgeCache: (prefix: string) => fetchApi('/api/admin/purge', { method: 'POST', body: JSON.stringify({ prefix }) }),
+    getStats: (days = 7) => fetchApi(`/api/admin/stats?days=${days}`)
   }
 }
 ```
@@ -137,8 +136,10 @@ function handleCors(request) {
 
 ```bash
 # .env
-NUXT_PUBLIC_CACHE_API_BASE=https://cdn.yourdomain.com
-NUXT_PUBLIC_CACHE_API_TOKEN=your-worker-api-token
+CACHE_API_BASE=https://cdn.yourdomain.com
+CACHE_API_TOKEN=your-worker-api-token
+
+# These variables belong on the Next.js server, not in the browser.
 NUXT_SESSION_PASSWORD=your-session-secret
 ```
 
