@@ -1,5 +1,6 @@
 const DEFAULT_TTL = 7 * 24 * 60 * 60
 const MAX_CACHE_SIZE = 100 * 1024 * 1024
+const MAX_STORAGE_BYTES = 9 * 1024 * 1024 * 1024
 const R2_PREFIX = 'cache/'
 const DEFAULT_CACHE_VERSION = 1
 const inFlight = new Map()
@@ -20,6 +21,11 @@ export default {
 
     if (!['GET', 'HEAD'].includes(request.method)) {
       return new Response('Method Not Allowed', { status: 405 })
+    }
+
+    const internalToken = env.INTERNAL_PROXY_TOKEN || env.API_TOKEN
+    if (!internalToken || request.headers.get('X-Cache-Internal') !== internalToken) {
+      return new Response('Forbidden', { status: 403 })
     }
 
     const rangeHeader = request.headers.get('Range')
@@ -62,12 +68,13 @@ export default {
 
     if (!originResponse.ok) {
       track(ctx, env, 'miss', responseBytes(originResponse))
-      return responseForCaller(originResponse, request)
+      return originErrorResponse(originResponse.status)
     }
 
     const callerResponse = originResponse.clone()
     const headers = new Headers(originResponse.headers)
     headers.set('CF-Cache-Status', 'MISS')
+    headers.set('X-Cache-Source', 'origin')
     headers.set(
       'Cache-Control',
       headers.get('Cache-Control') || `public, max-age=${route.ttl ?? env.DEFAULT_TTL ?? DEFAULT_TTL}`,
@@ -80,7 +87,8 @@ export default {
     track(ctx, env, 'miss', responseBytes(response))
 
     if (request.method === 'GET' && canStoreResponse(originResponse, headers)) {
-      ctx.waitUntil(storeResponse(env, cache, r2Key, cacheKey, originResponse, headers))
+      // Complete the R2 write before returning so the next download is served from cache.
+      await storeResponse(env, cache, r2Key, cacheKey, originResponse, headers)
     }
 
     return response
@@ -141,6 +149,7 @@ function buildR2Response(r2Object, request) {
   const headers = new Headers()
   r2Object.writeHttpMetadata(headers)
   headers.set('CF-Cache-Status', 'HIT-R2')
+  headers.set('X-Cache-Source', 'r2')
   headers.set('Accept-Ranges', 'bytes')
   if (r2Object.httpEtag) headers.set('ETag', r2Object.httpEtag)
 
@@ -316,26 +325,27 @@ async function purgeCache(env, prefix) {
     if (prefixes.length === 0) prefixes.push(`${R2_PREFIX}default${routePrefix}`)
   }
 
-  let purged = 0
+  const purgedKeys = []
   for (const objectPrefix of prefixes) {
-    purged += await deleteR2Prefix(env.CACHE_BUCKET, objectPrefix)
+    purgedKeys.push(...await deleteR2Prefix(env.CACHE_BUCKET, objectPrefix))
   }
+  await releaseStorageObjects(env, purgedKeys)
   await bumpCacheVersion(env)
-  return jsonResponse({ purged })
+  return jsonResponse({ purged: purgedKeys.length })
 }
 
 async function deleteR2Prefix(bucket, prefix) {
   let cursor
-  let deleted = 0
+  const deletedKeys = []
   do {
     const page = await bucket.list({ prefix, cursor })
     for (const object of page.objects || []) {
       await bucket.delete(object.key)
-      deleted += 1
+      deletedKeys.push(object.key)
     }
     cursor = page.truncated ? page.cursor : undefined
   } while (cursor)
-  return deleted
+  return deletedKeys
 }
 
 function normalizePurgePrefix(prefix) {
@@ -379,11 +389,15 @@ function canStoreResponse(response, headers) {
 }
 
 async function storeResponse(env, cache, r2Key, cacheKey, originResponse, headers) {
-  const contentLength = Number.parseInt(originResponse.headers.get('Content-Length') || '0', 10)
-  if (contentLength && contentLength > Number(env.MAX_CACHE_SIZE || MAX_CACHE_SIZE)) return
+  const body = await originResponse.clone().blob()
+  const maxObjectSize = Number(env.MAX_CACHE_SIZE || MAX_CACHE_SIZE)
+  if (body.size > maxObjectSize) return
+
+  const reservation = await reserveStorage(env, r2Key, body.size)
+  if (!reservation) return
 
   try {
-    await env.CACHE_BUCKET.put(r2Key, await originResponse.clone().blob(), {
+    await env.CACHE_BUCKET.put(r2Key, body, {
       httpMetadata: {
         contentType: originResponse.headers.get('content-type') || undefined,
         cacheControl: headers.get('Cache-Control') || undefined,
@@ -394,16 +408,94 @@ async function storeResponse(env, cache, r2Key, cacheKey, originResponse, header
       headers,
     }))
   } catch (error) {
+    await rollbackStorageReservation(env, r2Key, reservation)
     console.error('Cache write error:', error)
   }
 }
 
-function responseForCaller(response, request) {
-  const clone = response.clone()
-  return new Response(request.method === 'HEAD' ? null : clone.body, {
-    status: response.status,
-    headers: response.headers,
-  })
+async function reserveStorage(env, key, size) {
+  try {
+    const existing = await env.DB.prepare(
+      'SELECT size FROM cache_objects WHERE object_key = ?',
+    ).bind(key).first()
+    const previousSize = Number(existing?.size || 0)
+    const delta = size - previousSize
+    const maxBytes = Number(env.R2_MAX_STORAGE_BYTES || MAX_STORAGE_BYTES)
+
+    if (delta > 0) {
+      const result = await env.DB.prepare(`
+        UPDATE cache_storage
+        SET bytes_used = bytes_used + ?
+        WHERE id = 1
+          AND bytes_used + ? <= MIN(max_bytes, ?)
+      `).bind(delta, delta, maxBytes).run()
+      if (result.meta?.changes !== 1) return null
+    }
+
+    await env.DB.prepare(`
+      INSERT INTO cache_objects (object_key, size)
+      VALUES (?, ?)
+      ON CONFLICT(object_key) DO UPDATE SET
+        size = excluded.size,
+        updated_at = datetime('now')
+    `).bind(key, size).run()
+
+    return { previousSize, size, delta }
+  } catch (error) {
+    console.error('Storage reservation error:', error)
+    return null
+  }
+}
+
+async function rollbackStorageReservation(env, key, reservation) {
+  try {
+    const statements = []
+    if (reservation.delta > 0) {
+      statements.push(env.DB.prepare(
+        'UPDATE cache_storage SET bytes_used = MAX(0, bytes_used - ?) WHERE id = 1',
+      ).bind(reservation.delta))
+    }
+    if (reservation.previousSize > 0) {
+      statements.push(env.DB.prepare(
+        'UPDATE cache_objects SET size = ?, updated_at = datetime(\'now\') WHERE object_key = ?',
+      ).bind(reservation.previousSize, key))
+    } else {
+      statements.push(env.DB.prepare('DELETE FROM cache_objects WHERE object_key = ?').bind(key))
+    }
+    await env.DB.batch(statements)
+  } catch (error) {
+    console.error('Storage rollback error:', error)
+  }
+}
+
+async function releaseStorageObjects(env, keys) {
+  if (!keys.length) return
+  try {
+    const statements = []
+    for (const key of keys) {
+      statements.push(env.DB.prepare(`
+        UPDATE cache_storage
+        SET bytes_used = MAX(0, bytes_used - COALESCE((SELECT size FROM cache_objects WHERE object_key = ?), 0))
+        WHERE id = 1
+      `).bind(key))
+      statements.push(env.DB.prepare('DELETE FROM cache_objects WHERE object_key = ?').bind(key))
+    }
+    for (let index = 0; index < statements.length; index += 80) {
+      await env.DB.batch(statements.slice(index, index + 80))
+    }
+  } catch (error) {
+    console.error('Storage release error:', error)
+  }
+}
+
+function originErrorResponse(status) {
+  if (status >= 300 && status < 400) {
+    return new Response('Origin redirect rejected', { status: 502 })
+  }
+  if (status >= 500) {
+    return new Response('Origin unavailable', { status: 502 })
+  }
+  return new Response('Resource unavailable', { status })
 }
 
 function responseBytes(response) {

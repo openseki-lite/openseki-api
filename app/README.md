@@ -39,6 +39,9 @@ npx vercel --prod
 |---|---|
 | `CACHE_API_BASE` | 缓存服务地址，如 `https://cdn.yourdomain.com` |
 | `CACHE_API_TOKEN` | Workers API Token，仅在 Next.js 服务端配置 |
+| `CACHE_WORKER_BASE_URL` | Worker 内部地址，仅由 Next.js 服务端调用 |
+| `INTERNAL_PROXY_TOKEN` | Next.js 调用 Worker 的内部 Token |
+| `DOWNLOAD_ALLOWED_ORIGINS` | 允许调用下载 API 的网站 Origin，逗号分隔 |
 | `ADMIN_PASSWORD` | 管理后台登录密码，仅在 Next.js 服务端配置 |
 | `ADMIN_SESSION_SECRET` | 用于签名管理会话的随机长字符串 |
 

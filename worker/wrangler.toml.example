@@ -25,5 +25,6 @@ bucket_name = "resource-cache"            # GitHub Variable: R2_BUCKET_NAME
 [vars]
 DEFAULT_TTL = "604800"                    # GitHub Variable: DEFAULT_TTL
 MAX_CACHE_SIZE = "104857600"              # GitHub Variable: MAX_CACHE_SIZE
+R2_MAX_STORAGE_BYTES = "9663676416"       # 9 GiB hard storage ceiling
 ORIGIN_ALLOWLIST = "https://origin-a.com,https://origin-b.com" # GitHub Variable: ORIGIN_ALLOWLIST
 ADMIN_ORIGINS = "https://admin.yourdomain.com"                 # GitHub Variable: ADMIN_ORIGINS

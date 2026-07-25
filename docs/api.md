@@ -34,11 +34,13 @@ Authorization: Bearer {API_TOKEN}
 
 ## 资源代理接口
 
-### 获取资源
+### 获取资源（Next.js 下载 API）
 
 ```http
-GET https://cdn.yourdomain.com/{path}
+GET https://admin.yourdomain.com/api/download/{path}
 ```
+
+下载请求必须带有 `Origin` 或 `Referer`，且来源必须位于 `DOWNLOAD_ALLOWED_ORIGINS`。外部客户端不会直接访问 Worker。
 
 **请求头：**
 

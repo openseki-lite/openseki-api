@@ -134,6 +134,9 @@ npm install @element-plus/nuxt pinia @pinia/nuxt
 ```bash
 CACHE_API_BASE=https://cdn.yourdomain.com
 CACHE_API_TOKEN=your-secure-random-token
+CACHE_WORKER_BASE_URL=https://resource-proxy.youraccount.workers.dev
+INTERNAL_PROXY_TOKEN=another-private-worker-token
+DOWNLOAD_ALLOWED_ORIGINS=https://admin.yourdomain.com
 ADMIN_PASSWORD=your-admin-password
 ADMIN_SESSION_SECRET=generate-a-long-random-secret
 NUXT_SESSION_PASSWORD=your-session-secret

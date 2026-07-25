@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS cache_storage (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  bytes_used INTEGER NOT NULL DEFAULT 0,
+  max_bytes INTEGER NOT NULL DEFAULT 9663676416
+);
+
+INSERT OR IGNORE INTO cache_storage (id, bytes_used, max_bytes)
+VALUES (1, 0, 9663676416);
+
+CREATE TABLE IF NOT EXISTS cache_objects (
+  object_key TEXT PRIMARY KEY,
+  size INTEGER NOT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

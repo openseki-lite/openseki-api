@@ -11,6 +11,8 @@ Cloudflare Workers + R2 + D1 实现的资源缓存代理服务。
 - ETag / If-None-Match 支持
 - 并发回源合并
 - 管理 API（源站、刷新、预热）
+- 仅允许带内部 Token 的 Next.js 下载代理访问资源
+- R2 使用量达到 9 GiB 后停止写入新对象
 
 ## 目录结构
 
@@ -93,6 +95,7 @@ npx wrangler secret put API_TOKEN
 | `API_TOKEN` | 管理 API 认证 Token（Secret） |
 | `DEFAULT_TTL` | 默认缓存时间，单位秒 |
 | `MAX_CACHE_SIZE` | 最大缓存文件大小，单位字节 |
+| `R2_MAX_STORAGE_BYTES` | R2 最大缓存总量，默认 9663676416（9 GiB） |
 | `ORIGIN_ALLOWLIST` | 允许写入 D1 的源站 Origin 白名单 |
 | `ADMIN_ORIGINS` | 管理 API 的 CORS Origin 白名单 |
 
