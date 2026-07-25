@@ -32,12 +32,13 @@ jobs:
 
       - name: Validate Cloudflare configuration
         env:
-          D1_DATABASE_NAME: ${{ vars.D1_DATABASE_NAME }}
+          D1_DATABASE_NAME: ${{ vars.D1_DATABASE_NAME || 'resource-cache-db' }}
           D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
-          R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME }}
+          R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME || 'resource-cache' }}
+          ORIGIN_ALLOWLIST: ${{ vars.ORIGIN_ALLOWLIST }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          for variable in D1_DATABASE_NAME D1_DATABASE_ID R2_BUCKET_NAME CLOUDFLARE_API_TOKEN; do
+          for variable in D1_DATABASE_NAME D1_DATABASE_ID R2_BUCKET_NAME ORIGIN_ALLOWLIST CLOUDFLARE_API_TOKEN; do
             if [ -z "${!variable}" ]; then
               echo "::error::Missing GitHub Actions variable or secret: $variable"
               exit 1
@@ -45,6 +46,15 @@ jobs:
           done
 
       - name: Generate wrangler.toml
+        env:
+          D1_DATABASE_NAME: ${{ vars.D1_DATABASE_NAME || 'resource-cache-db' }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+          R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME || 'resource-cache' }}
+          DEFAULT_TTL: ${{ vars.DEFAULT_TTL || '604800' }}
+          MAX_CACHE_SIZE: ${{ vars.MAX_CACHE_SIZE || '104857600' }}
+          R2_MAX_STORAGE_BYTES: ${{ vars.R2_MAX_STORAGE_BYTES || '9663676416' }}
+          ORIGIN_ALLOWLIST: ${{ vars.ORIGIN_ALLOWLIST }}
+          ADMIN_ORIGINS: ${{ vars.ADMIN_ORIGINS }}
         run: |
           cat > wrangler.toml <<'EOF'
           name = "resource-proxy"
@@ -53,12 +63,12 @@ jobs:
 
           [[d1_databases]]
           binding = "DB"
-          database_name = "${{ vars.D1_DATABASE_NAME }}"
-          database_id = "${{ vars.D1_DATABASE_ID }}"
+          database_name = "$D1_DATABASE_NAME"
+          database_id = "$D1_DATABASE_ID"
 
           [[r2_buckets]]
           binding = "CACHE_BUCKET"
-          bucket_name = "${{ vars.R2_BUCKET_NAME }}"
+          bucket_name = "$R2_BUCKET_NAME"
           EOF
 
           if [ -n "${{ vars.ROUTE_PATTERN }}" ]; then
@@ -73,11 +83,11 @@ jobs:
           cat >> wrangler.toml <<'EOF'
 
           [vars]
-          DEFAULT_TTL = "${{ vars.DEFAULT_TTL }}"
-          MAX_CACHE_SIZE = "${{ vars.MAX_CACHE_SIZE }}"
-          R2_MAX_STORAGE_BYTES = "${{ vars.R2_MAX_STORAGE_BYTES }}"
-          ORIGIN_ALLOWLIST = "${{ vars.ORIGIN_ALLOWLIST }}"
-          ADMIN_ORIGINS = "${{ vars.ADMIN_ORIGINS }}"
+          DEFAULT_TTL = "$DEFAULT_TTL"
+          MAX_CACHE_SIZE = "$MAX_CACHE_SIZE"
+          R2_MAX_STORAGE_BYTES = "$R2_MAX_STORAGE_BYTES"
+          ORIGIN_ALLOWLIST = "$ORIGIN_ALLOWLIST"
+          ADMIN_ORIGINS = "$ADMIN_ORIGINS"
           EOF
 
       - name: Apply D1 migrations
@@ -94,7 +104,7 @@ jobs:
           EOF
           npx wrangler d1 migrations apply "$D1_DATABASE_NAME" --remote --config d1-migrations.wrangler.toml
         env:
-          D1_DATABASE_NAME: ${{ vars.D1_DATABASE_NAME }}
+          D1_DATABASE_NAME: ${{ vars.D1_DATABASE_NAME || 'resource-cache-db' }}
           D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
