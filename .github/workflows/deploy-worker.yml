@@ -65,7 +65,7 @@ jobs:
           ORIGIN_ALLOWLIST: ${{ vars.ORIGIN_ALLOWLIST }}
           ADMIN_ORIGINS: ${{ vars.ADMIN_ORIGINS }}
         run: |
-          cat > wrangler.toml <<'EOF'
+          cat > wrangler.toml <<EOF
           name = "resource-proxy"
           main = "src/index.js"
           compatibility_date = "2026-07-24"
@@ -89,7 +89,7 @@ jobs:
           EOF
           fi
 
-          cat >> wrangler.toml <<'EOF'
+          cat >> wrangler.toml <<EOF
 
           [vars]
           DEFAULT_TTL = "$DEFAULT_TTL"
