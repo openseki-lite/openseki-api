@@ -14,9 +14,13 @@ database_id = "your-database-id"          # GitHub Variable: D1_DATABASE_ID
 binding = "CACHE_BUCKET"
 bucket_name = "resource-cache"            # GitHub Variable: R2_BUCKET_NAME
 
-[[routes]]
-pattern = "cdn.yourdomain.com/*"          # GitHub Variable: ROUTE_PATTERN
-custom_domain = true
+# Optional: only add this section after you have registered a workers.dev
+# subdomain or added a custom domain to Cloudflare.
+# For custom domains, use just the hostname (no path or wildcard):
+#   pattern = "cdn.yourdomain.com"
+# [[routes]]
+# pattern = "cdn.yourdomain.com"            # GitHub Variable: ROUTE_PATTERN
+# custom_domain = true
 
 [vars]
 DEFAULT_TTL = "604800"                    # GitHub Variable: DEFAULT_TTL

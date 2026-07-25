@@ -32,7 +32,7 @@ jobs:
 
       - name: Generate wrangler.toml
         run: |
-          cat > wrangler.toml <<EOF
+          cat > wrangler.toml <<'EOF'
           name = "resource-proxy"
           main = "src/index.js"
           compatibility_date = "2026-07-24"
@@ -45,10 +45,18 @@ jobs:
           [[r2_buckets]]
           binding = "CACHE_BUCKET"
           bucket_name = "${{ vars.R2_BUCKET_NAME }}"
+          EOF
+
+          if [ -n "${{ vars.ROUTE_PATTERN }}" ]; then
+            cat >> wrangler.toml <<'EOF'
 
           [[routes]]
           pattern = "${{ vars.ROUTE_PATTERN }}"
           custom_domain = true
+          EOF
+          fi
+
+          cat >> wrangler.toml <<'EOF'
 
           [vars]
           DEFAULT_TTL = "${{ vars.DEFAULT_TTL }}"

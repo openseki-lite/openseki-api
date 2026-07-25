@@ -61,9 +61,11 @@ npx wrangler deploy
    - `D1_DATABASE_NAME`：D1 数据库名，如 `resource-cache-db`
    - `D1_DATABASE_ID`：D1 database ID
    - `R2_BUCKET_NAME`：R2 bucket 名，如 `resource-cache`
-   - `ROUTE_PATTERN`：Worker 路由，如 `cdn.yourdomain.com/*`
+   - `ROUTE_PATTERN`：Worker 路由（可选），自定义域名填 `cdn.yourdomain.com`，留空则只使用 `*.workers.dev`
    - `DEFAULT_TTL`：默认缓存秒数，如 `604800`
    - `MAX_CACHE_SIZE`：最大缓存字节数，如 `104857600`
+
+   > 首次部署前，需要先在 Cloudflare Dashboard 注册一个免费的 `workers.dev` 子域名，否则部署会失败。
 
 3. push 到 `main` 分支自动触发部署
 
