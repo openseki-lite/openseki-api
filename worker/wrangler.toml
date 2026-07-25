@@ -11,7 +11,7 @@ database_id = "your-database-id"
 binding = "CACHE_BUCKET"
 bucket_name = "resource-cache"
 
-[routes]
+[[routes]]
 pattern = "cdn.yourdomain.com/*"
 custom_domain = true
 
