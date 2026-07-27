@@ -10,7 +10,7 @@ Cloudflare Workers + R2 + D1 实现的资源缓存代理服务。
 - Range 请求支持
 - ETag / If-None-Match 支持
 - 并发回源合并
-- 管理 API（源站、刷新、预热）
+- 管理 API（源站、动态白名单、刷新、预热）
 - 仅允许带内部 Token 的 Next.js 下载代理访问资源
 - R2 使用量达到 9 GiB 后停止写入新对象
 
@@ -60,7 +60,7 @@ npx wrangler deploy
    - `CLOUDFLARE_API_TOKEN`
 
    **Variables（明文配置）：**
-   - `ORIGIN_ALLOWLIST`：允许配置的源站 Origin，逗号分隔（可选，配置后启用严格白名单）
+   - `ORIGIN_ALLOWLIST`：初始源站 Origin 白名单，逗号分隔。管理员未保存动态配置时使用它作为默认值。
    - `D1_DATABASE_NAME`：D1 数据库名，默认 `resource-cache-db`，CI 会自动解析 ID
    - `R2_BUCKET_NAME`：R2 bucket 名，默认 `resource-cache`
    - `ROUTE_PATTERN`：Worker 路由（可选），自定义域名填 `cdn.yourdomain.com`，留空则只使用 `*.workers.dev`
@@ -96,7 +96,7 @@ npx wrangler secret put API_TOKEN
 | `DEFAULT_TTL` | 默认缓存时间，单位秒 |
 | `MAX_CACHE_SIZE` | 最大缓存文件大小，单位字节 |
 | `R2_MAX_STORAGE_BYTES` | R2 最大缓存总量，默认 9663676416（9 GiB） |
-| `ORIGIN_ALLOWLIST` | 允许写入 D1 的源站 Origin 白名单 |
+| `ORIGIN_ALLOWLIST` | 初始源站 Origin 白名单；会限制新增和运行中的源站路由，可在管理后台动态覆盖并恢复为该默认值 |
 | `ADMIN_ORIGINS` | 管理 API 的 CORS Origin 白名单 |
 
 ## 管理 API
@@ -105,7 +105,12 @@ npx wrangler secret put API_TOKEN
 |---|---|---|
 | `/api/admin/sources` | GET | 获取源站列表 |
 | `/api/admin/sources` | POST | 新增/更新源站 |
+| `/api/admin/origin-allowlist` | GET | 获取当前生效的源站白名单 |
+| `/api/admin/origin-allowlist` | PUT | 保存动态源站白名单，JSON Body: `{ "origins": ["https://viewer.unipjsk.com"] }` |
+| `/api/admin/origin-allowlist` | DELETE | 删除动态覆盖，恢复 `ORIGIN_ALLOWLIST` 默认值 |
 | `/api/admin/purge` | POST | 刷新缓存 |
 | `/api/admin/warm` | POST | 预热缓存 |
 
 请求头需要带：`Authorization: Bearer <API_TOKEN>`
+
+动态白名单仅允许通过已认证的管理 API 修改。Next.js 管理后台会在服务端转发请求，不能使用 `NEXT_PUBLIC_` 变量或浏览器直连 Worker Token。

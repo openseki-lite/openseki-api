@@ -35,6 +35,9 @@ interface ArkShellProps {
   nav?: NavItem[];
   activeId?: string;
   onNavigate?: (id: string) => void;
+  menuLabel?: string;
+  navigationLabel?: string;
+  headerAction?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -47,6 +50,9 @@ export function ArkShell({
   nav = [],
   activeId,
   onNavigate,
+  menuLabel = 'Menu',
+  navigationLabel = 'Primary',
+  headerAction,
   children,
 }: ArkShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -62,20 +68,23 @@ export function ArkShell({
             <small>{code || profile.code}</small>
           </span>
         </div>
-        <span className="arkR-online">
-          <i aria-hidden="true" /> {status || profile.status}
-        </span>
-        <button
-          className="arkR-menu"
-          type="button"
-          aria-expanded={menuOpen}
-          aria-controls="arkR-rail"
-          onClick={() => setMenuOpen((value) => !value)}
-        >
-          Menu
-        </button>
+        <div className="arkR-headerActions">
+          <span className="arkR-online">
+            <i aria-hidden="true" /> {status || profile.status}
+          </span>
+          {headerAction}
+          <button
+            className="arkR-menu"
+            type="button"
+            aria-expanded={menuOpen}
+            aria-controls="arkR-rail"
+            onClick={() => setMenuOpen((value) => !value)}
+          >
+            {menuLabel}
+          </button>
+        </div>
       </header>
-      <nav className="arkR-rail" id="arkR-rail" data-open={menuOpen} aria-label="Primary">
+      <nav className="arkR-rail" id="arkR-rail" data-open={menuOpen} aria-label={navigationLabel}>
         {nav.map((item, index) => (
           <button
             key={item.id}

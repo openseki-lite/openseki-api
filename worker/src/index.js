@@ -111,17 +111,21 @@ function normalizePath(pathname) {
 }
 
 async function resolveRoute(pathname, env) {
-  const { results } = await env.DB.prepare(`
+  const [routeRows, allowlist] = await Promise.all([
+    env.DB.prepare(`
     SELECT prefix, origin, ttl, team_id as teamId
     FROM source_routes
     WHERE active = 1
     ORDER BY length(prefix) DESC
-  `).all()
+    `).all(),
+    getOriginAllowlist(env),
+  ])
 
-  for (const row of results || []) {
+  for (const row of routeRows.results || []) {
     const routePrefix = row.prefix.replace(/\*$/, '')
     const exactPrefix = routePrefix.replace(/\/$/, '') || '/'
     if (pathname === exactPrefix || pathname.startsWith(routePrefix)) {
+      if (allowlist.restricted && !allowlist.origins.includes(row.origin)) continue
       return row
     }
   }
@@ -229,6 +233,34 @@ async function handleAdmin(request, env, url) {
     return jsonResponse(results || [])
   }
 
+  if (url.pathname === '/api/admin/origin-allowlist' && request.method === 'GET') {
+    const allowlist = await getOriginAllowlist(env)
+    return jsonResponse({ origins: allowlist.origins, source: allowlist.source })
+  }
+
+  if (url.pathname === '/api/admin/origin-allowlist' && request.method === 'PUT') {
+    const body = await request.json().catch(() => null)
+    const input = validateOriginAllowlist(body?.origins)
+    if (!input.ok) return jsonResponse({ error: input.error }, 400)
+
+    await env.DB.prepare(`
+      INSERT INTO origin_allowlist_settings (id, origins, updated_at)
+      VALUES (1, ?, datetime('now'))
+      ON CONFLICT(id) DO UPDATE SET
+        origins = excluded.origins,
+        updated_at = excluded.updated_at
+    `).bind(JSON.stringify(input.origins)).run()
+    await bumpCacheVersion(env)
+    return jsonResponse({ ok: true, origins: input.origins, source: 'database' })
+  }
+
+  if (url.pathname === '/api/admin/origin-allowlist' && request.method === 'DELETE') {
+    await env.DB.prepare('DELETE FROM origin_allowlist_settings WHERE id = 1').run()
+    await bumpCacheVersion(env)
+    const allowlist = await getOriginAllowlist(env)
+    return jsonResponse({ ok: true, origins: allowlist.origins, source: allowlist.source })
+  }
+
   if (url.pathname === '/api/admin/stats' && request.method === 'GET') {
     const requestedDays = Number(url.searchParams.get('days') || 30)
     const days = Number.isInteger(requestedDays) ? Math.min(Math.max(requestedDays, 1), 90) : 30
@@ -243,7 +275,7 @@ async function handleAdmin(request, env, url) {
 
   if (url.pathname === '/api/admin/sources' && request.method === 'POST') {
     const body = await request.json().catch(() => null)
-    const input = validateSourceRoute(body, env)
+    const input = await validateSourceRoute(body, env)
     if (!input.ok) return jsonResponse({ error: input.error }, 400)
 
     await env.DB.prepare(`
@@ -263,29 +295,17 @@ async function handleAdmin(request, env, url) {
   return new Response('Not Found', { status: 404 })
 }
 
-function validateSourceRoute(body, env) {
+async function validateSourceRoute(body, env) {
   if (!body || typeof body !== 'object') return { ok: false, error: 'JSON object required' }
   if (typeof body.prefix !== 'string' || !/^\/[^\s]{0,255}$/.test(body.prefix)) {
     return { ok: false, error: 'prefix must be an absolute path' }
   }
 
-  let originUrl
-  try {
-    originUrl = new URL(body.origin)
-  } catch {
-    return { ok: false, error: 'origin must be a valid URL' }
-  }
-  if (!['https:', 'http:'].includes(originUrl.protocol) || originUrl.username || originUrl.password ||
-      originUrl.pathname !== '/' || originUrl.search || originUrl.hash) {
-    return { ok: false, error: 'origin must be a plain HTTP(S) origin URL' }
-  }
+  const parsedOrigin = normalizeOrigin(body.origin)
+  if (!parsedOrigin.ok) return parsedOrigin
 
-  const allowedOrigins = String(env.ORIGIN_ALLOWLIST || '')
-    .split(',')
-    .map((value) => value.trim().replace(/\/$/, ''))
-    .filter(Boolean)
-  const normalizedOrigin = originUrl.origin.replace(/\/$/, '')
-  if (allowedOrigins.length > 0 && !allowedOrigins.includes(normalizedOrigin)) {
+  const allowlist = await getOriginAllowlist(env)
+  if (allowlist.restricted && !allowlist.origins.includes(parsedOrigin.origin)) {
     return { ok: false, error: 'origin is not in ORIGIN_ALLOWLIST' }
   }
 
@@ -303,12 +323,66 @@ function validateSourceRoute(body, env) {
     ok: true,
     value: {
       prefix: body.prefix,
-      origin: normalizedOrigin,
+      origin: parsedOrigin.origin,
       ttl,
       active: body.active === false || body.active === 0 ? 0 : 1,
       teamId,
     },
   }
+}
+
+function normalizeOrigin(value) {
+  if (typeof value !== 'string') return { ok: false, error: 'origin must be a valid URL' }
+
+  let originUrl
+  try {
+    originUrl = new URL(value.trim())
+  } catch {
+    return { ok: false, error: 'origin must be a valid URL' }
+  }
+  if (!['https:', 'http:'].includes(originUrl.protocol) || originUrl.username || originUrl.password ||
+      originUrl.pathname !== '/' || originUrl.search || originUrl.hash) {
+    return { ok: false, error: 'origin must be a plain HTTP(S) origin URL' }
+  }
+  return { ok: true, origin: originUrl.origin }
+}
+
+function validateOriginAllowlist(value) {
+  if (!Array.isArray(value) || value.length > 100) {
+    return { ok: false, error: 'origins must be an array with at most 100 entries' }
+  }
+
+  const origins = []
+  for (const valueItem of value) {
+    const parsed = normalizeOrigin(valueItem)
+    if (!parsed.ok) return parsed
+    if (!origins.includes(parsed.origin)) origins.push(parsed.origin)
+  }
+  return { ok: true, origins }
+}
+
+async function getOriginAllowlist(env) {
+  try {
+    const row = await env.DB.prepare(
+      'SELECT origins FROM origin_allowlist_settings WHERE id = 1',
+    ).first()
+    if (row) {
+      const origins = JSON.parse(row.origins)
+      const input = validateOriginAllowlist(origins)
+      return { origins: input.ok ? input.origins : [], source: 'database', restricted: true }
+    }
+  } catch (error) {
+    // A Worker can briefly run before the D1 migration is applied; use the static fallback.
+    console.error('Origin allowlist read error:', error)
+  }
+
+  const origins = String(env.ORIGIN_ALLOWLIST || '')
+    .split(',')
+    .map((value) => normalizeOrigin(value))
+    .filter((value) => value.ok)
+    .map((value) => value.origin)
+  const uniqueOrigins = [...new Set(origins)]
+  return { origins: uniqueOrigins, source: 'environment', restricted: uniqueOrigins.length > 0 }
 }
 
 async function purgeCache(env, prefix) {
@@ -537,7 +611,7 @@ function withCors(response, request, env) {
 
   const headers = new Headers(response.headers)
   headers.set('Access-Control-Allow-Origin', origin)
-  headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type')
   headers.set('Access-Control-Max-Age', '86400')
   return new Response(response.body, {

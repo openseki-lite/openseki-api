@@ -14,6 +14,7 @@
 
 - `/` — 总览仪表盘
 - `/sources` — 源站路由管理
+- `/sources` — 也可管理 Worker 的动态源站白名单，并恢复环境变量默认配置
 - `/stats` — 缓存统计
 
 ## 本地开发
@@ -46,6 +47,10 @@ npx vercel --prod
 | `ADMIN_SESSION_SECRET` | 用于签名管理会话的随机长字符串 |
 
 不要使用 `NEXT_PUBLIC_` 前缀保存 Worker Token。管理操作通过 Server Action 在服务端转发。
+
+## 语言
+
+后台提供中文与 English 切换，语言偏好保存在浏览器 Cookie 中。语言切换不会影响下载 API 或 Worker 配置。
 
 ## Ark UI 契约
 

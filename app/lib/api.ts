@@ -19,6 +19,11 @@ export interface CacheStats {
   bytes_served: number;
 }
 
+export interface OriginAllowlist {
+  origins: string[];
+  source: 'database' | 'environment';
+}
+
 function getBase() {
   return (process.env.CACHE_API_BASE || '').replace(/\/$/, '');
 }
@@ -62,6 +67,21 @@ export async function upsertSource(body: Partial<SourceRoute>) {
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+export async function getOriginAllowlist(): Promise<OriginAllowlist> {
+  return fetchAdmin<OriginAllowlist>('/origin-allowlist');
+}
+
+export async function setOriginAllowlist(origins: string[]) {
+  return fetchAdmin('/origin-allowlist', {
+    method: 'PUT',
+    body: JSON.stringify({ origins }),
+  });
+}
+
+export async function resetOriginAllowlist() {
+  return fetchAdmin('/origin-allowlist', { method: 'DELETE' });
 }
 
 export async function purgeCache(prefix = '/*') {

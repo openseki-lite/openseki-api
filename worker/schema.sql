@@ -15,6 +15,12 @@ CREATE TABLE IF NOT EXISTS source_routes (
 CREATE INDEX IF NOT EXISTS idx_source_routes_active ON source_routes(active);
 CREATE INDEX IF NOT EXISTS idx_source_routes_team ON source_routes(team_id);
 
+CREATE TABLE IF NOT EXISTS origin_allowlist_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  origins TEXT NOT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS cache_meta (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   version INTEGER NOT NULL DEFAULT 1

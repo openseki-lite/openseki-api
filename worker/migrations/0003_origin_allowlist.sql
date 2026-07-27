@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS origin_allowlist_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  origins TEXT NOT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
