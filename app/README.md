@@ -42,11 +42,13 @@ npx vercel --prod
 | `CACHE_API_TOKEN` | Workers API Token，仅在 Next.js 服务端配置 |
 | `CACHE_WORKER_BASE_URL` | Worker 内部地址，仅由 Next.js 服务端调用 |
 | `INTERNAL_PROXY_TOKEN` | Next.js 调用 Worker 的内部 Token |
-| `DOWNLOAD_ALLOWED_ORIGINS` | 允许调用下载 API 的网站 Origin，逗号分隔 |
+| `DOWNLOAD_ALLOWED_ORIGINS` | 允许调用下载 API 的网站或已批准原生客户端 Origin，逗号分隔 |
 | `ADMIN_PASSWORD` | 管理后台登录密码，仅在 Next.js 服务端配置 |
 | `ADMIN_SESSION_SECRET` | 用于签名管理会话的随机长字符串 |
 
 不要使用 `NEXT_PUBLIC_` 前缀保存 Worker Token。管理操作通过 Server Action 在服务端转发。
+
+Unity 客户端使用 `X-OpenSekai-Client: opensekai-unity` 与 `X-OpenSekai-Origin` 标识调用来源；后者仍必须包含在 `DOWNLOAD_ALLOWED_ORIGINS` 中。Worker Token 不会下发到客户端。
 
 ## 语言
 

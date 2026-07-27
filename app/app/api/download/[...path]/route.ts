@@ -5,6 +5,8 @@ export const runtime = 'nodejs';
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 
+const UNITY_CLIENT_ID = 'opensekai-unity';
+
 function allowedOrigins() {
   return String(process.env.DOWNLOAD_ALLOWED_ORIGINS || '')
     .split(',')
@@ -25,8 +27,22 @@ function requestOrigin(request: NextRequest) {
   }
 }
 
+function nativeClientOrigin(request: NextRequest) {
+  if (request.headers.get('x-opensekai-client') !== UNITY_CLIENT_ID) return null;
+
+  const value = request.headers.get('x-opensekai-origin');
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.origin !== value.replace(/\/$/, '')) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 function corsHeaders(origin: string | null) {
-  const headers = new Headers({ Vary: 'Origin' });
+  const headers = new Headers({ Vary: 'Origin, X-OpenSekai-Client, X-OpenSekai-Origin' });
   if (origin && allowedOrigins().includes(origin)) {
     headers.set('Access-Control-Allow-Origin', origin);
     headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
@@ -61,15 +77,16 @@ function copyResponseHeaders(source: Headers, origin: string | null) {
 }
 
 async function proxyDownload(request: NextRequest, context: RouteContext) {
-  const origin = requestOrigin(request);
-  if (!origin || !allowedOrigins().includes(origin)) {
+  const browserOrigin = requestOrigin(request);
+  const accessOrigin = browserOrigin || nativeClientOrigin(request);
+  if (!accessOrigin || !allowedOrigins().includes(accessOrigin)) {
     return errorResponse(403, 'Download origin is not allowed', null);
   }
 
   const workerBase = (process.env.CACHE_WORKER_BASE_URL || process.env.CACHE_API_BASE || '').replace(/\/$/, '');
   const internalToken = process.env.INTERNAL_PROXY_TOKEN || process.env.CACHE_API_TOKEN || '';
   if (!workerBase || !internalToken) {
-    return errorResponse(503, 'Download service is not configured', origin);
+    return errorResponse(503, 'Download service is not configured', browserOrigin);
   }
 
   const { path } = await context.params;
@@ -90,16 +107,16 @@ async function proxyDownload(request: NextRequest, context: RouteContext) {
       redirect: 'error',
     });
   } catch {
-    return errorResponse(502, 'Download service is unavailable', origin);
+    return errorResponse(502, 'Download service is unavailable', browserOrigin);
   }
 
   if (!workerResponse.ok && workerResponse.status !== 304) {
-    return errorResponse(workerResponse.status >= 500 ? 502 : workerResponse.status, 'Resource is unavailable', origin);
+    return errorResponse(workerResponse.status >= 500 ? 502 : workerResponse.status, 'Resource is unavailable', browserOrigin);
   }
 
   return new Response(request.method === 'HEAD' ? null : workerResponse.body, {
     status: workerResponse.status,
-    headers: copyResponseHeaders(workerResponse.headers, origin),
+    headers: copyResponseHeaders(workerResponse.headers, browserOrigin),
   });
 }
 
